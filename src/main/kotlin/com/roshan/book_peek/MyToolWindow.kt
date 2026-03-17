@@ -1,4 +1,4 @@
-package com.roshan.novel_reader
+package com.roshan.book_peek
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager

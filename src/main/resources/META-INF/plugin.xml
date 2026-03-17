@@ -67,38 +67,38 @@
             anchor="bottom" - 图标在底部边栏，窗口在底部打开
         -->
         <toolWindow id="BookPeek"
-                    factoryClass="com.roshan.novel_reader.NovelReaderToolWindowFactory"
+                    factoryClass="com.roshan.book_peek.NovelReaderToolWindowFactory"
                     anchor="bottom"
                     icon="/icons/reader.svg"/>
 
         <!-- 配置界面 -->
         <applicationConfigurable
                 parentId="tools"
-                instance="com.roshan.novel_reader.ReaderSettingsConfigurable"
-                id="com.roshan.novel_reader.ReaderSettingsConfigurable"
+                instance="com.roshan.book_peek.ReaderSettingsConfigurable"
+                id="com.roshan.book_peek.ReaderSettingsConfigurable"
                 displayName="BookPeek"/>
 
         <!-- 配置状态持久化服务 -->
         <applicationService
-                serviceImplementation="com.roshan.novel_reader.ReaderSettings"/>
+                serviceImplementation="com.roshan.book_peek.ReaderSettings"/>
     </extensions>
 
     <!-- 快捷键 Actions -->
     <actions>
         <action id="BookPeek.PrevChapter"
-                class="com.roshan.novel_reader.PrevChapterAction"
+                class="com.roshan.book_peek.PrevChapterAction"
                 text="上一章"
                 description="阅读器切换到上一章">
             <keyboard-shortcut keymap="$default" first-keystroke="alt A"/>
         </action>
         <action id="BookPeek.NextChapter"
-                class="com.roshan.novel_reader.NextChapterAction"
+                class="com.roshan.book_peek.NextChapterAction"
                 text="下一章"
                 description="阅读器切换到下一章">
             <keyboard-shortcut keymap="$default" first-keystroke="alt D"/>
         </action>
         <action id="BookPeek.ToggleControls"
-                class="com.roshan.novel_reader.ToggleControlsAction"
+                class="com.roshan.book_peek.ToggleControlsAction"
                 text="切换控制按钮"
                 description="显示/隐藏章节目录和翻页按钮">
             <keyboard-shortcut keymap="$default" first-keystroke="alt C"/>
