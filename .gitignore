@@ -9,13 +9,8 @@ build/
 .intellijPlatform/
 
 ### IntelliJ IDEA ###
-.idea/workspace.xml
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/kotlinc.xml
-.idea/.name
-.idea/libraries/
+.idea/
+.run/
 *.iws
 *.iml
 *.ipr
