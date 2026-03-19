@@ -4,8 +4,10 @@ plugins {
     id("org.jetbrains.intellij.platform") version "2.10.2"
 }
 
-group = "com.roshan"
-version = "1.0.1"
+group = "roshan"
+version = file("version.properties")
+    .readLines().first { it.startsWith("version=") }
+    .substringAfter("version=")
 
 repositories {
     mavenCentral()
@@ -23,6 +25,8 @@ dependencies {
     }
 }
 
+val changelogFile = layout.projectDirectory.file("CHANGELOG.html").asFile
+
 intellijPlatform {
     pluginConfiguration {
         ideaVersion {
@@ -30,17 +34,83 @@ intellijPlatform {
             untilBuild = provider { null }
         }
 
-        changeNotes = """
-            Initial version
-        """.trimIndent()
+        changeNotes = provider {
+            if (changelogFile.exists()) changelogFile.readText() else "<ul><li>Initial version</li></ul>"
+        }
     }
 }
 
 tasks {
-    // Set the JVM compatibility versions
     withType<JavaCompile> {
         sourceCompatibility = "21"
         targetCompatibility = "21"
+    }
+
+    register("bumpVersion") {
+        group = "versioning"
+        description = "Bump the patch version in version.properties"
+        val versionFile = layout.projectDirectory.file("version.properties").asFile
+        doLast {
+            val current = versionFile.readLines().first { it.startsWith("version=") }
+                .substringAfter("version=")
+            val parts = current.split(".").map { it.toInt() }.toMutableList()
+            parts[parts.lastIndex] = parts.last() + 1
+            val next = parts.joinToString(".")
+            versionFile.writeText("version=$next\n")
+            println("Version bumped: $current -> $next")
+        }
+    }
+
+    register("updateChangelog") {
+        group = "versioning"
+        description = "Prepend current version's git commits to CHANGELOG.html"
+        dependsOn("bumpVersion")
+
+        val chgFile = layout.projectDirectory.file("CHANGELOG.html").asFile
+        val verFile = layout.projectDirectory.file("version.properties").asFile
+        val markerFile = layout.projectDirectory.file(".last_build_commit").asFile
+
+        doLast {
+            val version = verFile.readLines()
+                .first { it.startsWith("version=") }
+                .substringAfter("version=")
+
+            val cmd = if (markerFile.exists()) {
+                val since = markerFile.readText().trim()
+                arrayOf("git", "log", "--pretty=format:%s", "$since..HEAD")
+            } else {
+                arrayOf("git", "log", "--pretty=format:%s")
+            }
+
+            val process = ProcessBuilder(*cmd).start()
+            val log = process.inputStream.bufferedReader().readText().trim()
+            process.waitFor()
+
+            if (log.isNotBlank()) {
+                val items = log.lines()
+                    .filter { it.isNotBlank() }
+                    .joinToString("\n") { "    <li>$it</li>" }
+                val newSection = "<h3>v$version</h3>\n<ul>\n$items\n</ul>\n\n"
+
+                val existing = if (chgFile.exists()) chgFile.readText() else ""
+                chgFile.writeText(newSection + existing)
+            }
+
+            val headProcess = ProcessBuilder("git", "rev-parse", "HEAD").start()
+            val head = headProcess.inputStream.bufferedReader().readText().trim()
+            headProcess.waitFor()
+            markerFile.writeText(head)
+
+            println("Changelog updated for v$version")
+        }
+    }
+
+    named("patchPluginXml") {
+        dependsOn("updateChangelog")
+    }
+
+    named("buildPlugin") {
+        dependsOn("updateChangelog")
     }
 }
 

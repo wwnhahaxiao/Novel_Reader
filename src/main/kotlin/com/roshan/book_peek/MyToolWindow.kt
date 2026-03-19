@@ -25,9 +25,9 @@ import javax.swing.text.StyleConstants
  */
 class BookPeekToolWindowFactory : ToolWindowFactory {
     override fun shouldBeAvailable(project: Project) = true
+    override fun isDoNotActivateOnStart() = true
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        // 设置窗口失焦时自动隐藏
         toolWindow.setAutoHide(true)
         
         val readerPanel = BookPeekPanel(project, toolWindow)
@@ -121,6 +121,10 @@ class BookPeekPanel(
         }.apply {
             text = "请在设置中选择书籍文件开始阅读...\n\nSettings → Tools → BookPeek"
             isEditable = false
+            caret = object : javax.swing.text.DefaultCaret() {
+                override fun isVisible() = false
+                override fun setVisible(v: Boolean) {}
+            }
             font = Font("Microsoft YaHei", Font.PLAIN, settings.fontSize)
             border = BorderFactory.createEmptyBorder(10, 15, 10, 15)
         }
@@ -299,8 +303,7 @@ class BookPeekPanel(
         if (newBookPath != lastLoadedBookPath) {
             restoreLastReadingProgress()
         } else {
-            // 只更新显示（字号、控制按钮可见性等）
-            updateContent()
+            updateContent(resetScroll = false)
         }
         
         // 更新控制按钮可见性
@@ -424,7 +427,7 @@ class BookPeekPanel(
         doc.setParagraphAttributes(0, doc.length, attrs, false)
     }
 
-    private fun updateContent() {
+    private fun updateContent(resetScroll: Boolean = true) {
         val settings = ReaderSettings.getInstance().state
         contentArea.font = Font("Microsoft YaHei", Font.PLAIN, settings.fontSize)
         
@@ -438,6 +441,9 @@ class BookPeekPanel(
             return
         }
         
+        val scrollPane = SwingUtilities.getAncestorOfClass(JScrollPane::class.java, contentArea) as? JScrollPane
+        val savedScrollValue = scrollPane?.verticalScrollBar?.value
+        
         val chapter = chapters[currentChapterIndex]
         titleLabel.text = "$currentBookName - ${chapter.title}"
         val indentedContent = chapter.content.lines().joinToString("\n") { line ->
@@ -445,7 +451,11 @@ class BookPeekPanel(
         }
         contentArea.text = indentedContent
         applyLineSpacing()
-        contentArea.caretPosition = 0
+        if (resetScroll) {
+            contentArea.caretPosition = 0
+        } else if (savedScrollValue != null) {
+            SwingUtilities.invokeLater { scrollPane.verticalScrollBar.value = savedScrollValue }
+        }
         pageLabel.text = "${currentChapterIndex + 1} / ${chapters.size}"
         prevButton.isEnabled = currentChapterIndex > 0
         nextButton.isEnabled = currentChapterIndex < chapters.size - 1
