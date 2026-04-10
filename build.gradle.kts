@@ -1,3 +1,5 @@
+import java.net.URL
+
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "2.1.20"
@@ -48,69 +50,21 @@ tasks {
 
     register("bumpVersion") {
         group = "versioning"
-        description = "Bump the patch version in version.properties"
+        description = "Fetch latest version from JetBrains Marketplace and bump patch"
         val versionFile = layout.projectDirectory.file("version.properties").asFile
         doLast {
-            val current = versionFile.readLines().first { it.startsWith("version=") }
-                .substringAfter("version=")
+            @Suppress("DEPRECATION")
+            val apiUrl = URL("https://plugins.jetbrains.com/api/plugins/30744/updates?size=1")
+            val json = apiUrl.readText()
+            val current = """"version"\s*:\s*"([^"]+)"""".toRegex().find(json)?.groupValues?.get(1)
+                ?: error("Failed to fetch version from JetBrains Marketplace")
+
             val parts = current.split(".").map { it.toInt() }.toMutableList()
             parts[parts.lastIndex] = parts.last() + 1
             val next = parts.joinToString(".")
             versionFile.writeText("version=$next\n")
-            println("Version bumped: $current -> $next")
+            println("Marketplace: $current -> $next")
         }
-    }
-
-    register("updateChangelog") {
-        group = "versioning"
-        description = "Prepend current version's git commits to CHANGELOG.html"
-        dependsOn("bumpVersion")
-
-        val chgFile = layout.projectDirectory.file("CHANGELOG.html").asFile
-        val verFile = layout.projectDirectory.file("version.properties").asFile
-        val markerFile = layout.projectDirectory.file(".last_build_commit").asFile
-
-        doLast {
-            val version = verFile.readLines()
-                .first { it.startsWith("version=") }
-                .substringAfter("version=")
-
-            val cmd = if (markerFile.exists()) {
-                val since = markerFile.readText().trim()
-                arrayOf("git", "log", "--pretty=format:%s", "$since..HEAD")
-            } else {
-                arrayOf("git", "log", "--pretty=format:%s")
-            }
-
-            val process = ProcessBuilder(*cmd).start()
-            val log = process.inputStream.bufferedReader().readText().trim()
-            process.waitFor()
-
-            if (log.isNotBlank()) {
-                val items = log.lines()
-                    .filter { it.isNotBlank() }
-                    .joinToString("\n") { "    <li>$it</li>" }
-                val newSection = "<h3>v$version</h3>\n<ul>\n$items\n</ul>\n\n"
-
-                val existing = if (chgFile.exists()) chgFile.readText() else ""
-                chgFile.writeText(newSection + existing)
-            }
-
-            val headProcess = ProcessBuilder("git", "rev-parse", "HEAD").start()
-            val head = headProcess.inputStream.bufferedReader().readText().trim()
-            headProcess.waitFor()
-            markerFile.writeText(head)
-
-            println("Changelog updated for v$version")
-        }
-    }
-
-    named("patchPluginXml") {
-        dependsOn("updateChangelog")
-    }
-
-    named("buildPlugin") {
-        dependsOn("updateChangelog")
     }
 }
 

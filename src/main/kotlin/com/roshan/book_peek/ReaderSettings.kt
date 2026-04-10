@@ -2,7 +2,6 @@ package com.roshan.book_peek
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
-import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 
@@ -13,7 +12,6 @@ import com.intellij.openapi.components.Storage
     name = "BookPeekSettings",
     storages = [Storage("BookPeekSettings.xml")]
 )
-@Service(Service.Level.APP)
 class ReaderSettings : PersistentStateComponent<ReaderSettings.State> {
 
     private var myState = State()

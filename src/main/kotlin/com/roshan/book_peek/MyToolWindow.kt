@@ -25,9 +25,9 @@ import javax.swing.text.StyleConstants
  */
 class BookPeekToolWindowFactory : ToolWindowFactory {
     override fun shouldBeAvailable(project: Project) = true
-    override fun isDoNotActivateOnStart() = true
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+        // 设置窗口失焦时自动隐藏
         toolWindow.setAutoHide(true)
         
         val readerPanel = BookPeekPanel(project, toolWindow)
@@ -347,6 +347,9 @@ class BookPeekPanel(
                 lastChapterIndex = currentChapterIndex
             )
         )
+        ApplicationManager.getApplication().invokeLater {
+            ApplicationManager.getApplication().saveSettings()
+        }
     }
 
     /**
